@@ -1,0 +1,528 @@
+<?php
+session_start();
+// Si no hay sesión iniciada en PHP, redirigir al login
+if (!isset($_SESSION['usuario_actual'])) {
+    header("Location: login.php");
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Usuarios - Sistema Iglesia</title>
+<style>
+  :root{
+    --bg: #EEF1EC;
+    --bg-card: #FBFAF7;
+    --ink: #232B3A;
+    --ink-soft: #5B6472;
+    --wine: #000000;
+    --wine-dark: #111111;
+    --gold: #B8923F;
+    --rule: #D9D4C8;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Karla', -apple-system, sans-serif;
+    min-height:100vh;
+  }
+  .app{
+    max-width:1080px;
+    margin:0 auto;
+    padding: clamp(16px, 4vw, 32px) clamp(12px, 3vw, 24px) 80px;
+  }
+  .ministerio-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    text-align: center;
+  }
+  .login-logo {
+    height: clamp(30px, 8vw, 36px);
+    width: auto;
+    object-fit: contain;
+  }
+  .ministerio-banner{
+    font-family:'Fraunces', serif;
+    font-size: clamp(1.1rem, 3.5vw, 1.50rem);
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.15em;
+    color:var(--gold);
+    margin: 0;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--wine);
+    padding-bottom:18px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header.top h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: clamp(1.6rem, 4vw, 2rem);
+    margin:0;
+    color:var(--wine-dark);
+  }
+  header.top .subtitle{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin-top:2px;
+  }
+  .header-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap: wrap;
+  }
+
+  /* --- TABLA DE USUARIOS --- */
+  .card-tabla {
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow-x: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+    min-width: 600px;
+  }
+  th {
+    background: #E5E9E1;
+    padding: 14px 18px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule);
+  }
+  td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* BADGES DE ROL */
+  .badge-role {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .role-admin { background: #E2E8F0; color: #1E293B; }
+  .role-pastor { background: #FEF3C7; color: #92400E; }
+  .role-colab { background: #E0E7FF; color: #3730A3; }
+
+  .badge-perm {
+    display: inline-block;
+    background: #EDE9E3;
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.73rem;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* --- MODAL --- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(35,43,58,0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; z-index: 1000;
+  }
+  .modal {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: clamp(20px, 4vw, 30px);
+    max-width: 540px; width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-family: 'Fraunces', serif; color: var(--wine-dark); margin-top: 0; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid label {
+    display: flex; flex-direction: column;
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--ink-soft); gap: 5px;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  input[type="text"], input[type="password"], select {
+    font-family: 'Karla', sans-serif;
+    font-size: 0.92rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 9px 12px;
+    background: #fff;
+    color: var(--ink);
+    width: 100%;
+  }
+
+  /* GRID DE PERMISOS */
+  .perm-box {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+  .perm-box h3 {
+    font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--ink-soft); margin: 0 0 10px;
+  }
+  .permissions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #F4F6F2;
+    padding: 14px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  @media(max-width: 500px) {
+    .permissions-grid { grid-template-columns: 1fr; }
+  }
+  .perm-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.85rem; color: var(--ink); cursor: pointer;
+  }
+  .perm-item input[type="checkbox"] { accent-color: var(--wine); width: 16px; height: 16px; cursor: pointer; }
+
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+  .btn{
+    font-family:'Karla', sans-serif;
+    font-weight:700;
+    font-size:0.85rem;
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+    transition:transform 0.08s ease, opacity 0.15s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--wine); color:#fff;}
+  .btn-primary:hover{background:var(--wine-dark);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--rule);}
+  .btn-ghost:hover{border-color:var(--wine); color:var(--wine);}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- SDKs de Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <div class="ministerio-container">
+    <img src="Logo.png" alt="Logo Iglesia" class="login-logo">
+    <div class="ministerio-banner">Ministerio Internacional Movimiento de Gloria</div>
+  </div>
+  <header class="top">
+    <div>
+      <h1>Gestión de Usuarios</h1>
+      <div class="subtitle">Administra los accesos y las acciones permitidas dentro del sistema (Nube)</div>
+    </div>
+    <div class="header-actions">
+      <!-- Cambiado a index.php -->
+      <a href="index.php" class="btn btn-ghost">← Regresar al Panel</a>
+      <button class="btn btn-primary" onclick="abrirNuevoUsuario()">+ Nuevo Usuario</button>
+    </div>
+  </header>
+
+  <!-- TABLA PRINCIPAL DE USUARIOS -->
+  <div class="card-tabla">
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Nombre Completo</th>
+          <th>Rol</th>
+          <th>Acciones / Permisos Asignados</th>
+          <th style="text-align: right;">Opciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaUsuarios">
+        <tr><td colspan="5" style="text-align:center; font-style:italic; color:var(--ink-soft);">Cargando usuarios de la nube...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CREAR / EDITAR USUARIO -->
+<div class="overlay" id="modalUsuario" style="display:none;">
+  <div class="modal">
+    <h2 id="modalTitulo">Nuevo Usuario</h2>
+    <form id="formUsuario" onsubmit="guardarUsuario(event)">
+      <input type="hidden" id="userId">
+
+      <div class="form-grid">
+        <label>
+          Usuario
+          <input type="text" id="userUsername" required placeholder="ej. mlopez" autocomplete="off">
+        </label>
+        <label>
+          Contraseña
+          <input type="password" id="userPassword" placeholder="••••••••" autocomplete="new-password">
+        </label>
+        <label class="full">
+          Nombre Completo
+          <input type="text" id="userNombre" required placeholder="Ej. María López">
+        </label>
+        <label class="full">
+          Rol del Sistema
+          <select id="userRol" onchange="aplicarPermisosSegunRol()">
+            <option value="Administrador">Administrador</option>
+            <option value="Pastor">Pastor</option>
+            <option value="Colaborador">Colaborador</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- DESIGNACIÓN DE ACCIONES / PERMISOS -->
+      <div class="perm-box">
+        <h3>Designar Acciones Permitidas</h3>
+        <div class="permissions-grid">
+          <label class="perm-item">
+            <input type="checkbox" id="perm_crear"> Crear Registros
+          </label>
+          <label class="perm-item">
+            <input type="checkbox" id="perm_editar"> Editar Registros
+          </label>
+          <label class="perm-item">
+            <input type="checkbox" id="perm_eliminar"> Eliminar Registros
+          </label>
+          <label class="perm-item">
+            <input type="checkbox" id="perm_reportes"> Descargar Reportes
+          </label>
+          <label class="perm-item">
+            <input type="checkbox" id="perm_usuarios"> Gestionar Usuarios
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Configuración de Firebase
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY_REAL",
+    authDomain: "mdgweb-b7ab7.firebaseapp.com",
+    projectId: "mdgweb-b7ab7",
+    storageBucket: "mdgweb-b7ab7.appspot.com",
+    messagingSenderId: "571662431119",
+    appId: "1:571662431119:web:bf0d2b4ca2164d70c9"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
+
+  // VERIFICACIÓN DE SESIÓN (Redirige a login.php si no hay sesión en localStorage)
+  if (localStorage.getItem('sesion_iniciada') !== 'true') {
+    window.location.href = 'login.php';
+  }
+
+  function tienePermiso(accion) {
+    const usuarioActualName = localStorage.getItem('usuario_actual') || 'admin';
+    if (usuarioActualName === 'admin') return true;
+    return true; 
+  }
+
+  let usuarios = [];
+
+  // RENDERIZAR TABLA DESDE FIRESTORE
+  async function renderUsuarios() {
+    const tbody = document.getElementById('tablaUsuarios');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; font-style:italic;">Cargando usuarios de la nube...</td></tr>';
+
+    try {
+      const snapshot = await db.collection("usuarios").get();
+      usuarios = [];
+      snapshot.forEach((doc) => {
+        usuarios.push({ idDoc: doc.id, ...doc.data() });
+      });
+
+      tbody.innerHTML = '';
+
+      if (usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay usuarios registrados.</td></tr>';
+        return;
+      }
+
+      usuarios.forEach(u => {
+        let roleClass = u.rol === 'Administrador' ? 'role-admin' : (u.rol === 'Pastor' ? 'role-pastor' : 'role-colab');
+        const listaPermisos = u.permisos || [];
+        const tagsPermisos = listaPermisos.map(p => `<span class="badge-perm">${p}</span>`).join('');
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-weight: 700;">${escapeHtml(u.username || '')}</td>
+            <td>${escapeHtml(u.nombre || '')}</td>
+            <td><span class="badge-role ${roleClass}">${escapeHtml(u.rol || '')}</span></td>
+            <td>${tagsPermisos || '<em>Sin permisos</em>'}</td>
+            <td style="text-align: right;">
+              <button class="btn btn-ghost" style="padding: 4px 8px; font-size: 0.75rem;" onclick="editarUsuario('${u.idDoc}')">Editar</button>
+              ${u.username !== 'admin' ? `<button class="btn btn-ghost" style="padding: 4px 8px; font-size: 0.75rem; color: #b30000;" onclick="eliminarUsuario('${u.idDoc}')">Eliminar</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+    } catch (error) {
+      console.error("Error al cargar usuarios:", error);
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error al conectar con la nube.</td></tr>';
+    }
+  }
+
+  // MODAL ACCIONES
+  function abrirNuevoUsuario() {
+    document.getElementById('formUsuario').reset();
+    document.getElementById('userId').value = '';
+    document.getElementById('modalTitulo').textContent = 'Nuevo Usuario';
+    document.getElementById('userPassword').required = true;
+    aplicarPermisosSegunRol();
+    document.getElementById('modalUsuario').style.display = 'flex';
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalUsuario').style.display = 'none';
+  }
+
+  function aplicarPermisosSegunRol() {
+    const rol = document.getElementById('userRol').value;
+    const esAdmin = rol === 'Administrador';
+    const esPastor = rol === 'Pastor';
+
+    document.getElementById('perm_crear').checked = true;
+    document.getElementById('perm_editar').checked = true;
+    document.getElementById('perm_eliminar').checked = esAdmin;
+    document.getElementById('perm_reportes').checked = esAdmin || esPastor;
+    document.getElementById('perm_usuarios').checked = esAdmin;
+  }
+
+  // GUARDAR O ACTUALIZAR EN FIRESTORE
+  async function guardarUsuario(e) {
+    e.preventDefault();
+    const idDoc = document.getElementById('userId').value;
+    const username = document.getElementById('userUsername').value.trim();
+    const passwordInput = document.getElementById('userPassword').value.trim();
+    const nombre = document.getElementById('userNombre').value.trim();
+    const rol = document.getElementById('userRol').value;
+
+    const permisos = [];
+    if (document.getElementById('perm_crear').checked) permisos.push('crear');
+    if (document.getElementById('perm_editar').checked) permisos.push('editar');
+    if (document.getElementById('perm_eliminar').checked) permisos.push('eliminar');
+    if (document.getElementById('perm_reportes').checked) permisos.push('reportes');
+    if (document.getElementById('perm_usuarios').checked) permisos.push('usuarios');
+
+    try {
+      if (idDoc) {
+        const userRef = db.collection("usuarios").doc(idDoc);
+        const docSnap = await userRef.get();
+        const passwordFinal = passwordInput !== '' ? passwordInput : docSnap.data().password;
+
+        await userRef.update({
+          username,
+          password: passwordFinal,
+          nombre,
+          rol,
+          permisos
+        });
+      } else {
+        await db.collection("usuarios").add({
+          username,
+          password: passwordInput,
+          nombre,
+          rol,
+          permisos,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      renderUsuarios();
+      cerrarModal();
+    } catch (error) {
+      console.error("Error al guardar en Firebase:", error);
+      alert("Hubo un error al guardar el usuario en la nube.");
+    }
+  }
+
+  function editarUsuario(idDoc) {
+    const u = usuarios.find(user => user.idDoc === idDoc);
+    if (!u) return;
+
+    document.getElementById('userId').value = u.idDoc;
+    document.getElementById('userUsername').value = u.username || '';
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userPassword').required = false;
+    document.getElementById('userNombre').value = u.nombre || '';
+    document.getElementById('userRol').value = u.rol || 'Administrador';
+
+    const listaPermisos = u.permisos || [];
+    document.getElementById('perm_crear').checked = listaPermisos.includes('crear');
+    document.getElementById('perm_editar').checked = listaPermisos.includes('editar');
+    document.getElementById('perm_eliminar').checked = listaPermisos.includes('eliminar');
+    document.getElementById('perm_reportes').checked = listaPermisos.includes('reportes');
+    document.getElementById('perm_usuarios').checked = listaPermisos.includes('usuarios');
+
+    document.getElementById('modalTitulo').textContent = 'Editar Usuario';
+    document.getElementById('modalUsuario').style.display = 'flex';
+  }
+
+  async function eliminarUsuario(idDoc) {
+    if (confirm('¿Deseas borrar este usuario de la nube?')) {
+      try {
+        await db.collection("usuarios").doc(idDoc).delete();
+        renderUsuarios();
+      } catch (error) {
+        console.error("Error al eliminar:", error);
+        alert("No se pudo eliminar el usuario.");
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // Inicializar carga de tabla
+  renderUsuarios();
+</script>
+</body>
+</html>
