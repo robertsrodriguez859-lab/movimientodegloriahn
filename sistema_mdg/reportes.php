@@ -1,0 +1,413 @@
+<?php
+session_start();
+// Si no hay sesión iniciada en PHP, redirigir al login
+if (!isset($_SESSION['usuario_actual'])) {
+    header("Location: login.php");
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes y Estadísticas - Sistema Iglesia</title>
+<style>
+  :root{
+    --bg: #EEF1EC;
+    --bg-card: #FBFAF7;
+    --ink: #232B3A;
+    --ink-soft: #5B6472;
+    --wine: #000000;
+    --wine-dark: #111111;
+    --gold: #B8923F;
+    --green: #3F6B4A;
+    --clay: #9B8F82;
+    --clay-bg: #EDE9E3;
+    --rule: #D9D4C8;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Karla', -apple-system, sans-serif;
+    min-height:100vh;
+  }
+  .app{
+    max-width:1080px;
+    margin:0 auto;
+    padding: clamp(16px, 4vw, 32px) clamp(12px, 3vw, 24px) 80px;
+  }
+  .ministerio-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    text-align: center;
+  }
+  .login-logo {
+    height: clamp(30px, 8vw, 36px);
+    width: auto;
+    object-fit: contain;
+  }
+  .ministerio-banner{
+    font-family:'Fraunces', serif;
+    font-size: clamp(1.1rem, 3.5vw, 1.50rem);
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.15em;
+    color:var(--gold);
+    margin: 0;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--wine);
+    padding-bottom:18px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header.top h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: clamp(1.6rem, 4vw, 2rem);
+    margin:0;
+    color:var(--wine-dark);
+  }
+  header.top .subtitle{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin-top:2px;
+  }
+  .header-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+
+  .grid-metricas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card-metrica {
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .card-metrica .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(1.8rem, 4vw, 2.2rem);
+    font-weight: 700;
+    color: var(--wine);
+    line-height: 1.1;
+  }
+  .card-metrica .lbl {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  .grid-reportes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .card-reporte {
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: clamp(16px, 3vw, 22px);
+  }
+  .card-reporte h3 {
+    font-family: 'Fraunces', serif;
+    margin: 0 0 14px 0;
+    color: var(--wine);
+    border-bottom: 2px solid var(--gold);
+    padding-bottom: 6px;
+    font-size: 1.2rem;
+  }
+  .item-reporte {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 0.92rem;
+    gap: 8px;
+  }
+  .item-reporte:last-child { border-bottom: none; }
+  .item-reporte .val { font-weight: bold; font-family: 'IBM Plex Mono', monospace; }
+
+  .btn{
+    font-family:'Karla', sans-serif;
+    font-weight:700;
+    font-size:0.85rem;
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+    transition:transform 0.08s ease, opacity 0.15s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--wine); color:#fff;}
+  .btn-primary:hover{background:var(--wine-dark);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--rule);}
+  .btn-ghost:hover{border-color:var(--wine); color:var(--wine);}
+
+  .loading{text-align:center; padding:60px 20px; color:var(--ink-soft); font-style:italic;}
+
+  @media print {
+    .toolbar, .header-actions, .btn-volver { display: none !important; }
+    body { background: #fff; }
+    .app { padding: 0; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Karla:wght@400;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<!-- SDKs de Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <div class="ministerio-container">
+    <img src="Logo.png" alt="Logo Iglesia" class="login-logo">
+    <div class="ministerio-banner">Ministerio Internacional Movimiento de Gloria</div>
+  </div>
+  <header class="top">
+    <div>
+      <h1>Reportes y Estadísticas</h1>
+      <div class="subtitle">Resumen consolidado y cuantitativo de la congregación</div>
+    </div>
+    <div class="header-actions">
+      <!-- Cambiado a index.php -->
+      <a href="index.php" class="btn btn-ghost btn-volver">← Volver al Sistema</a>
+      <a href="logout.php" class="btn btn-ghost" style="color: #b30000; border-color: #b30000;">Cerrar Sesión</a>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span style="font-size:0.85rem; color:var(--ink-soft);">Datos sincronizados en tiempo real con la base de datos.</span>
+    <button class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <div id="loading" class="loading">Cargando métricas del sistema…</div>
+
+  <div id="contenido" style="display:none;">
+    <!-- Tarjetas de Resumen General -->
+    <div class="grid-metricas">
+      <div class="card-metrica">
+        <div class="num" id="metricTotalCongregacion">0</div>
+        <div class="lbl">Total Congregación</div>
+      </div>
+      <div class="card-metrica">
+        <div class="num" id="metricTotalCasas">0</div>
+        <div class="lbl">Casas de Paz Activas</div>
+      </div>
+      <div class="card-metrica">
+        <div class="num" id="metricTotalEscuela">0</div>
+        <div class="lbl">Alumnos Escuela Ministerial</div>
+      </div>
+      <div class="card-metrica">
+        <div class="num" id="metricTotalVisitantes">0</div>
+        <div class="lbl">Visitantes Registrados</div>
+      </div>
+    </div>
+
+    <!-- Secciones Detalladas -->
+    <div class="grid-reportes">
+      <div class="card-reporte">
+        <h3>Desglose por Cargos</h3>
+        <div id="desgloseCargos"></div>
+      </div>
+
+      <div class="card-reporte">
+        <h3>Casas de Paz</h3>
+        <div class="item-reporte"><span>Casas de Paz Registradas:</span><span class="val" id="cpCasas">0</span></div>
+        <div class="item-reporte"><span>Total Integrantes que asisten:</span><span class="val" id="cpIntegrantes">0</span></div>
+        <div class="item-reporte"><span>Promedio Asistentes / Casa:</span><span class="val" id="cpPromedio">0</span></div>
+      </div>
+
+      <div class="card-reporte">
+        <h3>Escuela Ministerial</h3>
+        <div class="item-reporte"><span>Estudiantes Cursando:</span><span class="val" id="emCursando">0</span></div>
+        <div class="item-reporte"><span>Graduados:</span><span class="val" id="emGraduados">0</span></div>
+        <div id="desgloseNivelesEscuela" style="margin-top:10px; border-top:1px solid var(--rule); padding-top:6px;"></div>
+      </div>
+
+      <div class="card-reporte">
+        <h3>Jóvenes e Invitados</h3>
+        <div class="item-reporte"><span>Jóvenes de la Iglesia:</span><span class="val" id="jovOficiales">0</span></div>
+        <div class="item-reporte"><span>Jóvenes Invitados:</span><span class="val" id="jovInvitados">0</span></div>
+      </div>
+
+      <div class="card-reporte">
+        <h3>Seguimiento a Visitantes</h3>
+        <div class="item-reporte"><span>Visitantes Interesados (Sí):</span><span class="val" id="visSi">0</span></div>
+        <div class="item-reporte"><span>Tal vez interesados:</span><span class="val" id="visTalVez">0</span></div>
+        <div class="item-reporte"><span>No interesados:</span><span class="val" id="visNo">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Configuración de Firebase
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY_REAL",
+    authDomain: "mdgweb-b7ab7.firebaseapp.com",
+    projectId: "mdgweb-b7ab7",
+    storageBucket: "mdgweb-b7ab7.appspot.com",
+    messagingSenderId: "571662431119",
+    appId: "1:571662431119:web:bf0d2b4ca2164d70c9"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
+
+  const CARGOS_LISTA = ['Miembro', 'Líder', 'Mentor', 'Evangelista', 'Anciano', 'Profeta', 'Pastor'];
+
+  function obtenerPluralCargo(cargo) {
+    switch (cargo) {
+      case 'Miembro': return 'Miembros';
+      case 'Líder': return 'Líderes';
+      case 'Mentor': return 'Mentores';
+      case 'Evangelista': return 'Evangelistas';
+      case 'Anciano': return 'Ancianos';
+      case 'Profeta': return 'Profetas';
+      case 'Pastor': return 'Pastores';
+      default: return cargo + 's';
+    }
+  }
+
+  // Función para obtener colecciones completas desde Firestore
+  async function obtenerColeccion(nombreColeccion) {
+    try {
+      const snapshot = await db.collection(nombreColeccion).get();
+      const docs = [];
+      snapshot.forEach(doc => {
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+      return docs;
+    } catch (error) {
+      console.error(`Error al leer colección ${nombreColeccion}:`, error);
+      return [];
+    }
+  }
+
+  async function cargarReportes() {
+    try {
+      // Consultas directas a Firebase en paralelo
+      const [mRes, jRes, jiRes, eRes, vRes, cRes] = await Promise.all([
+        obtenerColeccion('miembros'),
+        obtenerColeccion('jovenes'),
+        obtenerColeccion('jovenes_invitados'),
+        obtenerColeccion('escuela_ministerial'),
+        obtenerColeccion('visitantes'),
+        obtenerColeccion('casas_paz')
+      ]);
+
+      // Ocultar loading y mostrar contenido
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('contenido').style.display = 'block';
+
+      // Métricas superiores
+      document.getElementById('metricTotalCongregacion').textContent = mRes.length;
+      document.getElementById('metricTotalCasas').textContent = cRes.length;
+      document.getElementById('metricTotalEscuela').textContent = eRes.length;
+      document.getElementById('metricTotalVisitantes').textContent = vRes.length;
+
+      // Desglose por cargos
+      const porCargo = {};
+      CARGOS_LISTA.forEach(c => porCargo[c] = 0);
+      mRes.forEach(m => { 
+        if (m.cargo && porCargo[m.cargo] !== undefined) {
+          porCargo[m.cargo]++; 
+        }
+      });
+
+      document.getElementById('desgloseCargos').innerHTML = Object.entries(porCargo)
+        .map(([cargo, cant]) => `<div class="item-reporte"><span>${obtenerPluralCargo(cargo)}:</span><span class="val">${cant}</span></div>`)
+        .join('');
+
+      // Casas de paz
+      let totalIntegrantesCasas = 0;
+      cRes.forEach(c => {
+        if (Array.isArray(c.miembros)) {
+          totalIntegrantesCasas += c.miembros.length;
+        } else if (typeof c.miembros === 'string' && c.miembros.trim() !== '') {
+          totalIntegrantesCasas += c.miembros.split(',').length;
+        }
+      });
+      const promedio = cRes.length > 0 ? (totalIntegrantesCasas / cRes.length).toFixed(1) : 0;
+
+      document.getElementById('cpCasas').textContent = cRes.length;
+      document.getElementById('cpIntegrantes').textContent = totalIntegrantesCasas;
+      document.getElementById('cpPromedio').textContent = promedio;
+
+      // Escuela ministerial
+      const cursando = eRes.filter(x => x.estado === 'Cursando').length;
+      const graduados = eRes.filter(x => x.estado === 'Graduado').length;
+      document.getElementById('emCursando').textContent = cursando;
+      document.getElementById('emGraduados').textContent = graduados;
+
+      const porNivel = {};
+      eRes.forEach(e => {
+        if (e.nivel) {
+          porNivel[e.nivel] = (porNivel[e.nivel] || 0) + 1;
+        }
+      });
+
+      const nivelesHtml = Object.entries(porNivel).length > 0 
+        ? Object.entries(porNivel).map(([nivel, cant]) => `<div class="item-reporte"><span>Nivel ${nivel}:</span><span class="val">${cant}</span></div>`).join('')
+        : `<div style="font-size:0.85rem; color:var(--ink-soft); font-style:italic;">No hay niveles registrados</div>`;
+
+      document.getElementById('desgloseNivelesEscuela').innerHTML = nivelesHtml;
+
+      // Jóvenes
+      document.getElementById('jovOficiales').textContent = jRes.length;
+      document.getElementById('jovInvitados').textContent = jiRes.length;
+
+      // Visitantes
+      document.getElementById('visSi').textContent = vRes.filter(v => v.interesado === 'Sí').length;
+      document.getElementById('visTalVez').textContent = vRes.filter(v => v.interesado === 'Tal vez').length;
+      document.getElementById('visNo').textContent = vRes.filter(v => v.interesado === 'No').length;
+
+    } catch (e) {
+      console.error('Error cargando datos de Firebase:', e);
+      document.getElementById('loading').textContent = 'Error al cargar las métricas. Verifica la conexión con la base de datos.';
+    }
+  }
+
+  cargarReportes();
+</script>
+</body>
+</html>
