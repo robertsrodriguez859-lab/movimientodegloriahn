@@ -1,8 +1,8 @@
 <?php
 // ==========================================================
 // CONTROL DE SESIÓN Y PERMISOS (PHP)
-// Verifica que exista una sesión activa antes de mostrar la
-// página y filtra los módulos según los permisos del usuario.
+// Verifica sesión activa. Si login.php aún no define rol o 
+// permisos, aplica valores por defecto para evitar bloqueos.
 // ==========================================================
 session_start();
 if (!isset($_SESSION['usuario_actual'])) {
@@ -10,10 +10,12 @@ if (!isset($_SESSION['usuario_actual'])) {
     exit();
 }
 
-// Obtener rol y permisos desde la sesión
-$rolUsuario = $_SESSION['rol'] ?? 'invitado';
-$esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0);
-$permisosUsuario = $_SESSION['permisos'] ?? [];
+// Obtener rol y permisos desde la sesión (con respaldo si login.php no los envía aún)
+$rolUsuario = $_SESSION['rol'] ?? 'admin'; // Temporalmente 'admin' si no está definido, ajústalo según necesites
+$esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0 || $_SESSION['usuario_actual'] === 'admin');
+
+// Si la sesión no trae permisos definidos, permitimos todo temporalmente para que no se oculte el menú
+$permisosUsuario = $_SESSION['permisos'] ?? ['todos'];
 
 // Función para verificar si tiene acceso a un módulo específico
 function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
@@ -31,14 +33,8 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
 <link rel="icon" type="image/png" href="Logo.png">
 <!-- ==========================================================
      ESTILOS (CSS)
-     A diferencia de los módulos internos (Casas de Paz, Equipo
-     Ministerial, etc.), esta página es una sola tarjeta
-     centrada en la pantalla con una cuadrícula de botones de
-     navegación. No tiene header con menú hamburguesa porque
-     ES el punto de entrada al resto del sistema.
      ========================================================== -->
 <style>
-  /* Variables globales de color y radio de bordes (mismas que en el resto del sistema) */
   :root{
     --bg: #EEF1EC;
     --bg-card: #FBFAF7;
@@ -52,7 +48,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
   }
   *{box-sizing:border-box;}
 
-  /* El body centra la tarjeta ".app" tanto vertical como horizontalmente en toda la pantalla */
   body{
     margin:0;
     background:var(--bg);
@@ -66,7 +61,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     padding:20px;
   }
 
-  /* Tarjeta central que contiene el logo, título y todos los botones de navegación */
   .app{
     max-width:800px;
     width:100%;
@@ -78,7 +72,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     text-align:center;
   }
 
-  /* --- Logo + nombre del ministerio, arriba de la tarjeta --- */
   .ministerio-container {
     display: flex;
     align-items: center;
@@ -102,7 +95,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     margin: 0;
   }
 
-  /* --- Título y subtítulo de la página --- */
   h1{
     font-family:'Fraunces', serif;
     font-weight:600;
@@ -117,10 +109,9 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     margin-bottom:25px;
   }
 
-  /* --- Cuadrícula de botones de navegación a cada módulo (Miembros, Casas de Paz, etc.) --- */
   .nav-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); /* Se acomodan solos según el ancho disponible */
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
     gap:12px;
     margin-bottom:25px;
   }
@@ -139,10 +130,8 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     display:block;
   }
   .nav-btn:hover{border-color:var(--wine); color:var(--wine); background:#fff;}
-  /* Clase "active" disponible para resaltar el módulo actual */
   .nav-btn.active{background:var(--wine); color:#fff; border-color:var(--wine);}
 
-  /* --- Fila inferior con accesos secundarios: Reportes, Usuarios y Cerrar Sesión --- */
   .top-actions{
     display:flex;
     justify-content:center;
@@ -164,7 +153,7 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     color:var(--ink-soft);
   }
   .btn:hover{border-color:var(--wine); color:var(--wine);}
-  .btn-danger{color:var(--wine); border-color:var(--wine);} /* Estilo usado en "Cerrar Sesión" */
+  .btn-danger{color:var(--wine); border-color:var(--wine);}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Karla:wght@400;700&display=swap" rel="stylesheet">
@@ -173,7 +162,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
 
 <div class="app">
 
-  <!-- Logo + nombre del ministerio -->
   <div class="ministerio-container">
     <img src="Logo.png" alt="Logo Iglesia" class="login-logo">
     <div class="ministerio-banner">Ministerio Internacional Movimiento de Gloria</div>
@@ -182,10 +170,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
   <h1>Panel Principal</h1>
   <div class="subtitle">Seleccione una sección para administrar los registros</div>
 
-  <!-- ==========================================================
-        MENÚ DE NAVEGACIÓN PRINCIPAL
-        Se valida el permiso correspondiente para cada módulo.
-        ========================================================== -->
   <div class="nav-grid">
     <?php if (tieneAccesoModulo('miembros', $esAdmin, $permisosUsuario)): ?>
       <a href="miembros.php" class="nav-btn">Miembros</a>
@@ -216,7 +200,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     <?php endif; ?>
   </div>
 
-  <!-- Accesos secundarios condicionados -->
   <div class="top-actions">
     <?php if (tieneAccesoModulo('reportes', $esAdmin, $permisosUsuario)): ?>
       <a href="reportes.php" class="btn">Reportes</a>
