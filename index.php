@@ -1,8 +1,7 @@
 <?php
 // ==========================================================
 // CONTROL DE SESIÓN Y PERMISOS (PHP)
-// Verifica sesión activa. Si login.php aún no define rol o 
-// permisos, aplica valores por defecto para evitar bloqueos.
+// Verifica sesión activa y aplica restricciones estrictas.
 // ==========================================================
 session_start();
 if (!isset($_SESSION['usuario_actual'])) {
@@ -10,12 +9,10 @@ if (!isset($_SESSION['usuario_actual'])) {
     exit();
 }
 
-// Obtener rol y permisos desde la sesión (con respaldo si login.php no los envía aún)
-$rolUsuario = $_SESSION['rol'] ?? 'admin'; // Temporalmente 'admin' si no está definido, ajústalo según necesites
-$esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0 || $_SESSION['usuario_actual'] === 'admin');
-
-// Si la sesión no trae permisos definidos, permitimos todo temporalmente para que no se oculte el menú
-$permisosUsuario = $_SESSION['permisos'] ?? ['todos'];
+// Obtenemos el rol y permisos reales de la sesión (sin caer en 'admin' por defecto)
+$rolUsuario = $_SESSION['rol'] ?? 'usuario';
+$esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0);
+$permisosUsuario = $_SESSION['permisos'] ?? [];
 
 // Función para verificar si tiene acceso a un módulo específico
 function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
@@ -31,9 +28,6 @@ function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema - Ministerio Internacional Movimiento de Gloria</title>
 <link rel="icon" type="image/png" href="Logo.png">
-<!-- ==========================================================
-     ESTILOS (CSS)
-     ========================================================== -->
 <style>
   :root{
     --bg: #EEF1EC;
