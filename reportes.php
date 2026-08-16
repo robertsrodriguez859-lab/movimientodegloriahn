@@ -12,6 +12,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reportes y Estadísticas - Sistema Iglesia</title>
+    <link rel="icon" type="image/png" href="Logo.png">
 <style>
   :root{
     --bg: #EEF1EC;
