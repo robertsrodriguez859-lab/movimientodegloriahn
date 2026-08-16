@@ -5,9 +5,26 @@ if (!isset($_SESSION['usuario_actual'])) {
     exit();
 }
 
-// Control de permisos simulado o basado en sesión (ej: rol 'admin' o 'lider')
+// Obtener rol y permisos desde la sesión (ajusta los nombres de las variables según cómo guardes los permisos al iniciar sesión)
 $rolUsuario = $_SESSION['rol'] ?? 'invitado';
 $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
+
+// Lista o arreglo de permisos del usuario (ej. $_SESSION['permisos'] o $_SESSION['modulos'])
+$permisosUsuario = $_SESSION['permisos'] ?? [];
+
+// Validar si tiene acceso al módulo de casas de paz (los admin tienen acceso total)
+$tieneAccesoModulo = $esAdmin || in_array('casas_de_paz', $permisosUsuario) || in_array('todos', $permisosUsuario);
+
+if (!$tieneAccesoModulo) {
+    // Si no tiene acceso al módulo, redirigir al panel principal o index
+    header("Location: index.php");
+    exit();
+}
+
+// Permisos específicos de acciones
+$puedeCrear = $esAdmin || in_array('crear', $permisosUsuario);
+$puedeEditar = $esAdmin || in_array('editar', $permisosUsuario);
+$puedeEliminar = $esAdmin || in_array('eliminar', $permisosUsuario);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -153,8 +170,8 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
   
   <div class="aviso">Los datos se sincronizan directamente con Firebase Firestore.</div>
   
-  <!-- Botón flotante condicional según permisos de administrador -->
-  <?php if ($esAdmin): ?>
+  <!-- Botón flotante condicional según permiso de crear -->
+  <?php if ($puedeCrear): ?>
   <button class="fab" id="btnNuevo" title="Registrar Casa de Paz">+</button>
   <?php endif; ?>
 </div>
@@ -198,8 +215,10 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   
-  // Definir permisos del usuario autenticado en JS
-  const esAdmin = <?php echo $esAdmin ? 'true' : 'false'; ?>;
+  // Variables de permisos inyectadas desde PHP
+  const puedeCrear = <?php echo $puedeCrear ? 'true' : 'false'; ?>;
+  const puedeEditar = <?php echo $puedeEditar ? 'true' : 'false'; ?>;
+  const puedeEliminar = <?php echo $puedeEliminar ? 'true' : 'false'; ?>;
 
   const firebaseConfig = { apiKey: "AIzaSyD-lfkA-khlPes6zcjGmfAACWK9SK6Uhxc", authDomain: "mdgweb-b7ab7.firebaseapp.com", projectId: "mdgweb-b7ab7", storageBucket: "mdgweb-b7ab7.appspot.com", messagingSenderId: "571662431119", appId: "1:571662431119:web:bf0d2b4ca2164d70c9" };
   const db = getFirestore(initializeApp(firebaseConfig));
@@ -263,14 +282,17 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
           </div>`;
       }
 
-      // Renderizado condicional de los botones de acción basados en el rol (permisos)
+      // Renderizado condicional de botones según permisos específicos
       let accionesHTML = '';
-      if (esAdmin) {
-        accionesHTML = `
-          <div class="card-actions">
-            <button class="btn btn-ghost" data-editar="${r.id}">Editar</button>
-            <button class="btn btn-danger" data-borrar="${r.id}">Eliminar</button>
-          </div>`;
+      if (puedeEditar || puedeEliminar) {
+        accionesHTML += '<div class="card-actions">';
+        if (puedeEditar) {
+          accionesHTML += `<button class="btn btn-ghost" data-editar="${r.id}">Editar</button>`;
+        }
+        if (puedeEliminar) {
+          accionesHTML += `<button class="btn btn-danger" data-borrar="${r.id}">Eliminar</button>`;
+        }
+        accionesHTML += '</div>';
       }
 
       return `
@@ -291,8 +313,10 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
         </div>`;
     }).join('');
 
-    if (esAdmin) {
+    if (puedeEditar) {
       contenedor.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => abrirEdicion(b.dataset.editar)));
+    }
+    if (puedeEliminar) {
       contenedor.querySelectorAll('[data-borrar]').forEach(b => b.addEventListener('click', () => borrar(b.dataset.borrar)));
     }
   }
@@ -337,7 +361,7 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
   function abrirModal(){ document.getElementById('overlay').style.display = 'flex'; }
   function cerrarModal(){ document.getElementById('overlay').style.display = 'none'; editandoId = null; integrantesTemp = []; document.getElementById('form').reset(); }
   
-  if (esAdmin) {
+  if (puedeCrear) {
     document.getElementById('btnNuevo').addEventListener('click', () => { 
       editandoId = null; 
       document.getElementById('modalTitulo').textContent = 'Registrar Casa de Paz'; 
@@ -352,7 +376,7 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
   document.getElementById('buscar').addEventListener('input', render);
 
   function abrirEdicion(id){
-    if (!esAdmin) return alert('No tienes permisos para editar.');
+    if (!puedeEditar) return alert('No tienes permisos para editar.');
     const r = registros.find(x => x.id === id); if(!r) return;
     editandoId = id;
     document.getElementById('modalTitulo').textContent = 'Editar Casa de Paz';
@@ -374,7 +398,7 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
   }
 
   async function borrar(id){
-    if (!esAdmin) return alert('No tienes permisos para eliminar.');
+    if (!puedeEliminar) return alert('No tienes permisos para eliminar.');
     if(!confirm('¿Eliminar esta Casa de Paz?')) return;
     await deleteDoc(doc(db, COLECCION, id));
     registros = registros.filter(r => r.id !== id); 
@@ -383,7 +407,8 @@ $esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
 
   document.getElementById('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!esAdmin) return alert('No tienes permisos para guardar cambios.');
+    if (editandoId && !puedeEditar) return alert('No tienes permisos para editar.');
+    if (!editandoId && !puedeCrear) return alert('No tienes permisos para crear.');
     
     const datos = { 
       anfitriones: document.getElementById('f_anfitriones').value.trim(), 
