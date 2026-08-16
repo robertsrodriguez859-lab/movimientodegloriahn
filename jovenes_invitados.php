@@ -11,6 +11,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jóvenes Invitados - Ministerio Internacional Movimiento de Gloria</title>
+    <link rel="icon" type="image/png" href="Logo.png">
 <style>
   :root{--bg:#EEF1EC;--bg-card:#FBFAF7;--ink:#232B3A;--ink-soft:#5B6472;--wine:#000000;--wine-dark:#111111;--gold:#B8923F;--rule:#D9D4C8;--radius:10px;}
   *{box-sizing:border-box;}
