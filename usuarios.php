@@ -16,7 +16,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestión de Usuarios - Sistema Iglesia</title>
-    <link rel="icon" type="image/png" href="Logo.png">
+<link rel="icon" type="image/png" href="Logo.png">
 <style>
   /* =====================================================================
      ESTILOS CSS: Variables, diseño responsivo y componentes visuales
@@ -163,7 +163,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     background: var(--bg-card);
     border-radius: var(--radius);
     padding: clamp(20px, 4vw, 30px);
-    max-width: 540px; width: 100%;
+    max-width: 600px; width: 100%;
     box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     max-height: 90vh; overflow-y: auto;
   }
@@ -277,7 +277,7 @@ if (!isset($_SESSION['usuario_actual'])) {
           <th>Usuario</th>
           <th>Nombre Completo</th>
           <th>Rol</th>
-          <th>Acciones / Permisos Asignados</th>
+          <th>Módulos y Permisos Asignados</th>
           <th style="text-align: right;">Opciones</th>
         </tr>
       </thead>
@@ -320,25 +320,25 @@ if (!isset($_SESSION['usuario_actual'])) {
         </label>
       </div>
 
-      <!-- DESIGNACIÓN DE ACCIONES / PERMISOS -->
+      <!-- DESIGNACIÓN DE ACCESOS A MÓDULOS Y ACCIONES -->
       <div class="perm-box">
-        <h3>Designar Acciones Permitidas</h3>
+        <h3>Designar Módulos y Permisos Permitidos</h3>
         <div class="permissions-grid">
-          <label class="perm-item">
-            <input type="checkbox" id="perm_crear"> Crear Registros
-          </label>
-          <label class="perm-item">
-            <input type="checkbox" id="perm_editar"> Editar Registros
-          </label>
-          <label class="perm-item">
-            <input type="checkbox" id="perm_eliminar"> Eliminar Registros
-          </label>
-          <label class="perm-item">
-            <input type="checkbox" id="perm_reportes"> Descargar Reportes
-          </label>
-          <label class="perm-item">
-            <input type="checkbox" id="perm_usuarios"> Gestionar Usuarios
-          </label>
+          <!-- Permisos Generales / Acciones -->
+          <label class="perm-item"><input type="checkbox" id="perm_crear"> Crear Registros</label>
+          <label class="perm-item"><input type="checkbox" id="perm_editar"> Editar Registros</label>
+          <label class="perm-item"><input type="checkbox" id="perm_eliminar"> Eliminar Registros</label>
+          <label class="perm-item"><input type="checkbox" id="perm_reportes"> Descargar Reportes</label>
+          <label class="perm-item"><input type="checkbox" id="perm_usuarios"> Gestionar Usuarios</label>
+          
+          <!-- Accesos a Módulos Específicos -->
+          <label class="perm-item"><input type="checkbox" id="perm_miembros"> Módulo Miembros</label>
+          <label class="perm-item"><input type="checkbox" id="perm_visitantes"> Módulo Visitantes</label>
+          <label class="perm-item"><input type="checkbox" id="perm_jovenes_cc"> Jóvenes Contra Cultura</label>
+          <label class="perm-item"><input type="checkbox" id="perm_jovenes_inv"> Jóvenes Invitados</label>
+          <label class="perm-item"><input type="checkbox" id="perm_equipo"> Equipo Ministerial</label>
+          <label class="perm-item"><input type="checkbox" id="perm_escuela"> Escuela Ministerial</label>
+          <label class="perm-item"><input type="checkbox" id="perm_casas_paz"> Casas de Paz</label>
         </div>
       </div>
 
@@ -436,11 +436,22 @@ if (!isset($_SESSION['usuario_actual'])) {
     const esAdmin = rol === 'Administrador';
     const esPastor = rol === 'Pastor';
 
+    // Acciones generales
     document.getElementById('perm_crear').checked = true;
     document.getElementById('perm_editar').checked = true;
     document.getElementById('perm_eliminar').checked = esAdmin;
     document.getElementById('perm_reportes').checked = esAdmin || esPastor;
     document.getElementById('perm_usuarios').checked = esAdmin;
+
+    // Accesos a módulos específicos (Administrador y Pastor por defecto tienen acceso total a módulos)
+    const accesoModulos = esAdmin || esPastor;
+    document.getElementById('perm_miembros').checked = true;
+    document.getElementById('perm_visitantes').checked = true;
+    document.getElementById('perm_jovenes_cc').checked = true;
+    document.getElementById('perm_jovenes_inv').checked = true;
+    document.getElementById('perm_equipo').checked = true;
+    document.getElementById('perm_escuela').checked = true;
+    document.getElementById('perm_casas_paz').checked = true;
   }
 
   // =========================================================================
@@ -455,11 +466,20 @@ if (!isset($_SESSION['usuario_actual'])) {
     const rol = document.getElementById('userRol').value;
 
     const permisos = [];
+    // Acciones
     if (document.getElementById('perm_crear').checked) permisos.push('crear');
     if (document.getElementById('perm_editar').checked) permisos.push('editar');
     if (document.getElementById('perm_eliminar').checked) permisos.push('eliminar');
     if (document.getElementById('perm_reportes').checked) permisos.push('reportes');
     if (document.getElementById('perm_usuarios').checked) permisos.push('usuarios');
+    // Módulos
+    if (document.getElementById('perm_miembros').checked) permisos.push('miembros');
+    if (document.getElementById('perm_visitantes').checked) permisos.push('visitantes');
+    if (document.getElementById('perm_jovenes_cc').checked) permisos.push('jóvenes cc');
+    if (document.getElementById('perm_jovenes_inv').checked) permisos.push('jóvenes invitados');
+    if (document.getElementById('perm_equipo').checked) permisos.push('equipo ministerial');
+    if (document.getElementById('perm_escuela').checked) permisos.push('escuela ministerial');
+    if (document.getElementById('perm_casas_paz').checked) permisos.push('casas de paz');
 
     try {
       if (idDoc) {
@@ -510,11 +530,20 @@ if (!isset($_SESSION['usuario_actual'])) {
     document.getElementById('userRol').value = u.rol || 'Administrador';
 
     const listaPermisos = u.permisos || [];
+    // Acciones
     document.getElementById('perm_crear').checked = listaPermisos.includes('crear');
     document.getElementById('perm_editar').checked = listaPermisos.includes('editar');
     document.getElementById('perm_eliminar').checked = listaPermisos.includes('eliminar');
     document.getElementById('perm_reportes').checked = listaPermisos.includes('reportes');
     document.getElementById('perm_usuarios').checked = listaPermisos.includes('usuarios');
+    // Módulos
+    document.getElementById('perm_miembros').checked = listaPermisos.includes('miembros');
+    document.getElementById('perm_visitantes').checked = listaPermisos.includes('visitantes');
+    document.getElementById('perm_jovenes_cc').checked = listaPermisos.includes('jóvenes cc');
+    document.getElementById('perm_jovenes_inv').checked = listaPermisos.includes('jóvenes invitados');
+    document.getElementById('perm_equipo').checked = listaPermisos.includes('equipo ministerial');
+    document.getElementById('perm_escuela').checked = listaPermisos.includes('escuela ministerial');
+    document.getElementById('perm_casas_paz').checked = listaPermisos.includes('casas de paz');
 
     document.getElementById('modalTitulo').textContent = 'Editar Usuario';
     document.getElementById('modalUsuario').style.display = 'flex';
