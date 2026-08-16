@@ -367,19 +367,6 @@ if (!isset($_SESSION['usuario_actual'])) {
   }
   const db = firebase.firestore();
 
-  // =========================================================================
-  // VALIDACIONES Y SEGURIDAD EN EL CLIENTE (LOCALSTORAGE)
-  // =========================================================================
-  if (localStorage.getItem('sesion_iniciada') !== 'true') {
-    window.location.href = 'login.php';
-  }
-
-  function tienePermiso(accion) {
-    const usuarioActualName = localStorage.getItem('usuario_actual') || 'admin';
-    if (usuarioActualName === 'admin') return true;
-    return true; 
-  }
-
   let usuarios = [];
 
   // =========================================================================
