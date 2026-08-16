@@ -18,10 +18,33 @@ $rolUsuario = $_SESSION['rol'] ?? 'usuario';
 $esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0);
 $permisosUsuario = $_SESSION['permisos'] ?? [];
 
+// FUNCIÓN BLINDADA DE PERMISOS: Normaliza tildes, espacios y mayúsculas
 function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     if ($esAdmin) return true;
-    if (in_array('todos', $permisosUsuario) || in_array('todo', $permisosUsuario)) return true;
-    return in_array($nombreModulo, $permisosUsuario);
+    if (!is_array($permisosUsuario)) return false;
+
+    foreach ($permisosUsuario as $permiso) {
+        $pClean = mb_strtolower(trim($permiso), 'UTF-8');
+        // Reemplazar tildes y caracteres especiales
+        $pClean = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ä', 'ë', 'ï', 'ö', 'ü', 'ñ'],
+            ['a', 'e', 'i', 'o', 'u', 'a', 'e', 'i', 'o', 'u', 'n'],
+            $pClean
+        );
+        $pSlug = str_replace(' ', '_', $pClean);
+
+        // Si tiene permiso total
+        if ($pSlug === 'todos' || $pSlug === 'todo' || $pSlug === 'admin') return true;
+
+        // Coincidencia exacta con el identificador del módulo
+        if ($pSlug === $nombreModulo) return true;
+
+        // Coincidencias flexibles para nombres largos comunes
+        if ($nombreModulo === 'jovenes_cc' && ($pSlug === 'jovenes_contra_cultura' || $pSlug === 'contra_cultura')) {
+            return true;
+        }
+    }
+    return false;
 }
 ?>
 <!DOCTYPE html>
