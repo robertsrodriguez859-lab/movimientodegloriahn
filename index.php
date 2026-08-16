@@ -1,7 +1,6 @@
 <?php
 // ==========================================================
 // CONTROL DE SESIÓN Y PERMISOS (PHP)
-// Verifica sesión activa y aplica restricciones estrictas.
 // ==========================================================
 session_start();
 if (!isset($_SESSION['usuario_actual'])) {
@@ -9,12 +8,16 @@ if (!isset($_SESSION['usuario_actual'])) {
     exit();
 }
 
-// Obtenemos el rol y permisos reales de la sesión (sin caer en 'admin' por defecto)
+// PROTECCIÓN ESPECIAL: Si el usuario es 'admin', forzamos acceso total de inmediato
+if (strcasecmp($_SESSION['usuario_actual'], 'admin') === 0) {
+    $_SESSION['rol'] = 'admin';
+    $_SESSION['permisos'] = ['todos'];
+}
+
 $rolUsuario = $_SESSION['rol'] ?? 'usuario';
 $esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0);
 $permisosUsuario = $_SESSION['permisos'] ?? [];
 
-// Función para verificar si tiene acceso a un módulo específico
 function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
     if ($esAdmin) return true;
     if (in_array('todos', $permisosUsuario) || in_array('todo', $permisosUsuario)) return true;
