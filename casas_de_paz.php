@@ -4,6 +4,10 @@ if (!isset($_SESSION['usuario_actual'])) {
     header("Location: login.php");
     exit();
 }
+
+// Control de permisos simulado o basado en sesión (ej: rol 'admin' o 'lider')
+$rolUsuario = $_SESSION['rol'] ?? 'invitado';
+$esAdmin = ($rolUsuario === 'admin' || $rolUsuario === 'administrador');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -148,7 +152,11 @@ if (!isset($_SESSION['usuario_actual'])) {
   </div>
   
   <div class="aviso">Los datos se sincronizan directamente con Firebase Firestore.</div>
+  
+  <!-- Botón flotante condicional según permisos de administrador -->
+  <?php if ($esAdmin): ?>
   <button class="fab" id="btnNuevo" title="Registrar Casa de Paz">+</button>
+  <?php endif; ?>
 </div>
 
 <!-- Modal Registro / Edición -->
@@ -190,6 +198,9 @@ if (!isset($_SESSION['usuario_actual'])) {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   
+  // Definir permisos del usuario autenticado en JS
+  const esAdmin = <?php echo $esAdmin ? 'true' : 'false'; ?>;
+
   const firebaseConfig = { apiKey: "AIzaSyD-lfkA-khlPes6zcjGmfAACWK9SK6Uhxc", authDomain: "mdgweb-b7ab7.firebaseapp.com", projectId: "mdgweb-b7ab7", storageBucket: "mdgweb-b7ab7.appspot.com", messagingSenderId: "571662431119", appId: "1:571662431119:web:bf0d2b4ca2164d70c9" };
   const db = getFirestore(initializeApp(firebaseConfig));
   const COLECCION = 'casas_de_paz';
@@ -252,6 +263,16 @@ if (!isset($_SESSION['usuario_actual'])) {
           </div>`;
       }
 
+      // Renderizado condicional de los botones de acción basados en el rol (permisos)
+      let accionesHTML = '';
+      if (esAdmin) {
+        accionesHTML = `
+          <div class="card-actions">
+            <button class="btn btn-ghost" data-editar="${r.id}">Editar</button>
+            <button class="btn btn-danger" data-borrar="${r.id}">Eliminar</button>
+          </div>`;
+      }
+
       return `
         <div class="card-casa">
           <div class="card-casa-header">
@@ -263,18 +284,17 @@ if (!isset($_SESSION['usuario_actual'])) {
                 <span>${escapeHtml(String(r.num_integrantes || arrInt.length))}</span>
               </div>
             </div>
-            <div class="card-actions">
-              <button class="btn btn-ghost" data-editar="${r.id}">Editar</button>
-              <button class="btn btn-danger" data-borrar="${r.id}">Eliminar</button>
-            </div>
+            ${accionesHTML}
           </div>
           <div><span class="badge-codigo">${escapeHtml(r.codigo || 'C. ESTÁNDAR')}</span></div>
           ${listaIntHTML}
         </div>`;
     }).join('');
 
-    contenedor.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => abrirEdicion(b.dataset.editar)));
-    contenedor.querySelectorAll('[data-borrar]').forEach(b => b.addEventListener('click', () => borrar(b.dataset.borrar)));
+    if (esAdmin) {
+      contenedor.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => abrirEdicion(b.dataset.editar)));
+      contenedor.querySelectorAll('[data-borrar]').forEach(b => b.addEventListener('click', () => borrar(b.dataset.borrar)));
+    }
   }
 
   function renderIntegrantesForm(){
@@ -317,19 +337,22 @@ if (!isset($_SESSION['usuario_actual'])) {
   function abrirModal(){ document.getElementById('overlay').style.display = 'flex'; }
   function cerrarModal(){ document.getElementById('overlay').style.display = 'none'; editandoId = null; integrantesTemp = []; document.getElementById('form').reset(); }
   
-  document.getElementById('btnNuevo').addEventListener('click', () => { 
-    editandoId = null; 
-    document.getElementById('modalTitulo').textContent = 'Registrar Casa de Paz'; 
-    document.getElementById('form').reset(); 
-    integrantesTemp = [];
-    renderIntegrantesForm();
-    abrirModal(); 
-  });
+  if (esAdmin) {
+    document.getElementById('btnNuevo').addEventListener('click', () => { 
+      editandoId = null; 
+      document.getElementById('modalTitulo').textContent = 'Registrar Casa de Paz'; 
+      document.getElementById('form').reset(); 
+      integrantesTemp = [];
+      renderIntegrantesForm();
+      abrirModal(); 
+    });
+  }
   
   document.getElementById('btnCancelar').addEventListener('click', cerrarModal);
   document.getElementById('buscar').addEventListener('input', render);
 
   function abrirEdicion(id){
+    if (!esAdmin) return alert('No tienes permisos para editar.');
     const r = registros.find(x => x.id === id); if(!r) return;
     editandoId = id;
     document.getElementById('modalTitulo').textContent = 'Editar Casa de Paz';
@@ -351,6 +374,7 @@ if (!isset($_SESSION['usuario_actual'])) {
   }
 
   async function borrar(id){
+    if (!esAdmin) return alert('No tienes permisos para eliminar.');
     if(!confirm('¿Eliminar esta Casa de Paz?')) return;
     await deleteDoc(doc(db, COLECCION, id));
     registros = registros.filter(r => r.id !== id); 
@@ -359,6 +383,8 @@ if (!isset($_SESSION['usuario_actual'])) {
 
   document.getElementById('form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!esAdmin) return alert('No tienes permisos para guardar cambios.');
+    
     const datos = { 
       anfitriones: document.getElementById('f_anfitriones').value.trim(), 
       direccion: document.getElementById('f_direccion').value.trim(), 
