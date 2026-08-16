@@ -16,6 +16,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestión de Usuarios - Sistema Iglesia</title>
+    <link rel="icon" type="image/png" href="Logo.png">
 <style>
   /* =====================================================================
      ESTILOS CSS: Variables, diseño responsivo y componentes visuales
