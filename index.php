@@ -1,4 +1,12 @@
 <?php
+// ==========================================================
+// CONTROL DE SESIÓN (PHP)
+// Verifica que exista una sesión activa antes de mostrar la
+// página; si no, redirige a login.php.
+// Esta es la página de INICIO / PANEL PRINCIPAL del sistema:
+// no maneja datos ni Firebase, solo funciona como menú de
+// navegación hacia los demás módulos.
+// ==========================================================
 session_start();
 if (!isset($_SESSION['usuario_actual'])) {
     header("Location: login.php");
@@ -11,7 +19,17 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema - Ministerio Internacional Movimiento de Gloria</title>
+
+<!-- ==========================================================
+     ESTILOS (CSS)
+     A diferencia de los módulos internos (Casas de Paz, Equipo
+     Ministerial, etc.), esta página es una sola tarjeta
+     centrada en la pantalla con una cuadrícula de botones de
+     navegación. No tiene header con menú hamburguesa porque
+     ES el punto de entrada al resto del sistema.
+     ========================================================== -->
 <style>
+  /* Variables globales de color y radio de bordes (mismas que en el resto del sistema) */
   :root{
     --bg: #EEF1EC;
     --bg-card: #FBFAF7;
@@ -24,6 +42,8 @@ if (!isset($_SESSION['usuario_actual'])) {
     --radius: 10px;
   }
   *{box-sizing:border-box;}
+
+  /* El body centra la tarjeta ".app" tanto vertical como horizontalmente en toda la pantalla */
   body{
     margin:0;
     background:var(--bg);
@@ -36,6 +56,8 @@ if (!isset($_SESSION['usuario_actual'])) {
     justify-content:center;
     padding:20px;
   }
+
+  /* Tarjeta central que contiene el logo, título y todos los botones de navegación */
   .app{
     max-width:800px;
     width:100%;
@@ -46,6 +68,8 @@ if (!isset($_SESSION['usuario_actual'])) {
     box-shadow:0 10px 30px rgba(0,0,0,0.05);
     text-align:center;
   }
+
+  /* --- Logo + nombre del ministerio, arriba de la tarjeta --- */
   .ministerio-container {
     display: flex;
     align-items: center;
@@ -68,6 +92,8 @@ if (!isset($_SESSION['usuario_actual'])) {
     color:var(--gold);
     margin: 0;
   }
+
+  /* --- Título y subtítulo de la página --- */
   h1{
     font-family:'Fraunces', serif;
     font-weight:600;
@@ -81,9 +107,11 @@ if (!isset($_SESSION['usuario_actual'])) {
     font-style:italic;
     margin-bottom:25px;
   }
+
+  /* --- Cuadrícula de botones de navegación a cada módulo (Miembros, Casas de Paz, etc.) --- */
   .nav-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); /* Se acomodan solos según el ancho disponible */
     gap:12px;
     margin-bottom:25px;
   }
@@ -102,7 +130,11 @@ if (!isset($_SESSION['usuario_actual'])) {
     display:block;
   }
   .nav-btn:hover{border-color:var(--wine); color:var(--wine); background:#fff;}
+  /* Clase "active" disponible para resaltar el módulo actual, aunque en este archivo
+     no se le asigna a ningún botón (no hay lógica JS que la use) */
   .nav-btn.active{background:var(--wine); color:#fff; border-color:var(--wine);}
+
+  /* --- Fila inferior con accesos secundarios: Reportes, Usuarios y Cerrar Sesión --- */
   .top-actions{
     display:flex;
     justify-content:center;
@@ -123,7 +155,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     color:var(--ink-soft);
   }
   .btn:hover{border-color:var(--wine); color:var(--wine);}
-  .btn-danger{color:var(--wine); border-color:var(--wine);}
+  .btn-danger{color:var(--wine); border-color:var(--wine);} /* Estilo usado en "Cerrar Sesión" */
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Karla:wght@400;700&display=swap" rel="stylesheet">
@@ -131,6 +163,8 @@ if (!isset($_SESSION['usuario_actual'])) {
 <body>
 
 <div class="app">
+
+  <!-- Logo + nombre del ministerio -->
   <div class="ministerio-container">
     <img src="Logo.png" alt="Logo Iglesia" class="login-logo">
     <div class="ministerio-banner">Ministerio Internacional Movimiento de Gloria</div>
@@ -139,6 +173,12 @@ if (!isset($_SESSION['usuario_actual'])) {
   <h1>Panel Principal</h1>
   <div class="subtitle">Seleccione una sección para administrar los registros</div>
 
+  <!-- ==========================================================
+       MENÚ DE NAVEGACIÓN PRINCIPAL
+       Un botón por cada módulo del sistema. Son simples enlaces
+       <a> (no hay JS aquí): al hacer click, el navegador va
+       directo a esa página PHP.
+       ========================================================== -->
   <div class="nav-grid">
     <a href="miembros.php" class="nav-btn">Miembros</a>
     <a href="jovenes_contra_cultura.php" class="nav-btn">Jóvenes Contra Cultura</a>
@@ -149,6 +189,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     <a href="casas_de_paz.php" class="nav-btn">Casas de Paz</a>
   </div>
 
+  <!-- Accesos secundarios: reportes, gestión de usuarios del sistema, y cierre de sesión -->
   <div class="top-actions">
     <a href="reportes.php" class="btn">Reportes</a>
     <a href="usuarios.php" class="btn">Usuarios</a>
