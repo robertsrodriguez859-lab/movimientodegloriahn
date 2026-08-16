@@ -1,6 +1,10 @@
 <?php
+// =========================================================================
+// CONTROL DE SESIÓN (PHP)
+// Valida si existe una sesión activa para el usuario en el servidor.
+// Si no ha iniciado sesión, redirige inmediatamente a login.php.
+// =========================================================================
 session_start();
-// Si no hay sesión iniciada en PHP, redirigir al login
 if (!isset($_SESSION['usuario_actual'])) {
     header("Location: login.php");
     exit();
@@ -13,6 +17,9 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestión de Usuarios - Sistema Iglesia</title>
 <style>
+  /* =====================================================================
+     ESTILOS CSS: Variables, diseño responsivo y componentes visuales
+     ===================================================================== */
   :root{
     --bg: #EEF1EC;
     --bg-card: #FBFAF7;
@@ -120,7 +127,7 @@ if (!isset($_SESSION['usuario_actual'])) {
   }
   tr:last-child td { border-bottom: none; }
 
-  /* BADGES DE ROL */
+  /* BADGES DE ROL Y PERMISOS */
   .badge-role {
     display: inline-block;
     padding: 3px 8px;
@@ -144,7 +151,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     margin-bottom: 4px;
   }
 
-  /* --- MODAL --- */
+  /* --- MODAL FLOTANTE --- */
   .overlay {
     position: fixed; inset: 0;
     background: rgba(35,43,58,0.45);
@@ -182,7 +189,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     width: 100%;
   }
 
-  /* GRID DE PERMISOS */
+  /* GRID DE PERMISOS (CHECKBOXES) */
   .perm-box {
     margin-top: 14px;
     padding-top: 14px;
@@ -230,28 +237,33 @@ if (!isset($_SESSION['usuario_actual'])) {
   .btn-ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--rule);}
   .btn-ghost:hover{border-color:var(--wine); color:var(--wine);}
 </style>
+
+<!-- Importación de Fuentes Externas (Google Fonts) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Karla:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- SDKs de Firebase -->
+<!-- SDKs de Firebase (Compatibles con v10) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
 <div class="app">
+  <!-- Cabecera Institucional -->
   <div class="ministerio-container">
     <img src="Logo.png" alt="Logo Iglesia" class="login-logo">
     <div class="ministerio-banner">Ministerio Internacional Movimiento de Gloria</div>
   </div>
+  
   <header class="top">
     <div>
       <h1>Gestión de Usuarios</h1>
       <div class="subtitle">Administra los accesos y las acciones permitidas dentro del sistema (Nube)</div>
     </div>
     <div class="header-actions">
-      <!-- Cambiado a index.php -->
+      <!-- Botón para regresar al panel principal -->
       <a href="index.php" class="btn btn-ghost">← Regresar al Panel</a>
+      <!-- Botón para desplegar el modal de nuevo usuario -->
       <button class="btn btn-primary" onclick="abrirNuevoUsuario()">+ Nuevo Usuario</button>
     </div>
   </header>
@@ -269,6 +281,7 @@ if (!isset($_SESSION['usuario_actual'])) {
         </tr>
       </thead>
       <tbody id="tablaUsuarios">
+        <!-- Contenedor dinámico cargado mediante JS -->
         <tr><td colspan="5" style="text-align:center; font-style:italic; color:var(--ink-soft);">Cargando usuarios de la nube...</td></tr>
       </tbody>
     </table>
@@ -280,6 +293,7 @@ if (!isset($_SESSION['usuario_actual'])) {
   <div class="modal">
     <h2 id="modalTitulo">Nuevo Usuario</h2>
     <form id="formUsuario" onsubmit="guardarUsuario(event)">
+      <!-- Campo oculto para almacenar el ID del documento en Firestore al editar -->
       <input type="hidden" id="userId">
 
       <div class="form-grid">
@@ -336,7 +350,9 @@ if (!isset($_SESSION['usuario_actual'])) {
 </div>
 
 <script>
-  // Configuración de Firebase
+  // =========================================================================
+  // CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
+  // =========================================================================
   const firebaseConfig = {
     apiKey: "TU_API_KEY_REAL",
     authDomain: "mdgweb-b7ab7.firebaseapp.com",
@@ -351,7 +367,9 @@ if (!isset($_SESSION['usuario_actual'])) {
   }
   const db = firebase.firestore();
 
-  // VERIFICACIÓN DE SESIÓN (Redirige a login.php si no hay sesión en localStorage)
+  // =========================================================================
+  // VALIDACIONES Y SEGURIDAD EN EL CLIENTE (LOCALSTORAGE)
+  // =========================================================================
   if (localStorage.getItem('sesion_iniciada') !== 'true') {
     window.location.href = 'login.php';
   }
@@ -364,7 +382,9 @@ if (!isset($_SESSION['usuario_actual'])) {
 
   let usuarios = [];
 
-  // RENDERIZAR TABLA DESDE FIRESTORE
+  // =========================================================================
+  // RENDERIZAR TABLA DE USUARIOS DESDE FIRESTORE
+  // =========================================================================
   async function renderUsuarios() {
     const tbody = document.getElementById('tablaUsuarios');
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; font-style:italic;">Cargando usuarios de la nube...</td></tr>';
@@ -407,7 +427,9 @@ if (!isset($_SESSION['usuario_actual'])) {
     }
   }
 
-  // MODAL ACCIONES
+  // =========================================================================
+  // CONTROL DE VENTANA MODAL (APERTURA, CIERRE Y PERMISOS AUTOMÁTICOS)
+  // =========================================================================
   function abrirNuevoUsuario() {
     document.getElementById('formUsuario').reset();
     document.getElementById('userId').value = '';
@@ -433,7 +455,9 @@ if (!isset($_SESSION['usuario_actual'])) {
     document.getElementById('perm_usuarios').checked = esAdmin;
   }
 
-  // GUARDAR O ACTUALIZAR EN FIRESTORE
+  // =========================================================================
+  // GUARDAR O ACTUALIZAR USUARIOS EN FIRESTORE
+  // =========================================================================
   async function guardarUsuario(e) {
     e.preventDefault();
     const idDoc = document.getElementById('userId').value;
@@ -451,6 +475,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 
     try {
       if (idDoc) {
+        // Actualización de un documento existente
         const userRef = db.collection("usuarios").doc(idDoc);
         const docSnap = await userRef.get();
         const passwordFinal = passwordInput !== '' ? passwordInput : docSnap.data().password;
@@ -463,6 +488,7 @@ if (!isset($_SESSION['usuario_actual'])) {
           permisos
         });
       } else {
+        // Creación de un nuevo documento
         await db.collection("usuarios").add({
           username,
           password: passwordInput,
@@ -481,6 +507,9 @@ if (!isset($_SESSION['usuario_actual'])) {
     }
   }
 
+  // =========================================================================
+  // EDICIÓN Y ELIMINACIÓN DE REGISTROS
+  // =========================================================================
   function editarUsuario(idDoc) {
     const u = usuarios.find(user => user.idDoc === idDoc);
     if (!u) return;
@@ -515,13 +544,16 @@ if (!isset($_SESSION['usuario_actual'])) {
     }
   }
 
+  // =========================================================================
+  // UTILIDAD: SANITIZACIÓN CONTRA XSS
+  // =========================================================================
   function escapeHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
   }
 
-  // Inicializar carga de tabla
+  // Ejecución inicial automática al cargar la página
   renderUsuarios();
 </script>
 </body>
