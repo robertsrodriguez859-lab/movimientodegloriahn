@@ -1,16 +1,25 @@
 <?php
 // ==========================================================
-// CONTROL DE SESIÓN (PHP)
+// CONTROL DE SESIÓN Y PERMISOS (PHP)
 // Verifica que exista una sesión activa antes de mostrar la
-// página; si no, redirige a login.php.
-// Esta es la página de INICIO / PANEL PRINCIPAL del sistema:
-// no maneja datos ni Firebase, solo funciona como menú de
-// navegación hacia los demás módulos.
+// página y filtra los módulos según los permisos del usuario.
 // ==========================================================
 session_start();
 if (!isset($_SESSION['usuario_actual'])) {
     header("Location: login.php");
     exit();
+}
+
+// Obtener rol y permisos desde la sesión
+$rolUsuario = $_SESSION['rol'] ?? 'invitado';
+$esAdmin = (strcasecmp($rolUsuario, 'admin') === 0 || strcasecmp($rolUsuario, 'administrador') === 0);
+$permisosUsuario = $_SESSION['permisos'] ?? [];
+
+// Función para verificar si tiene acceso a un módulo específico
+function tieneAccesoModulo($nombreModulo, $esAdmin, $permisosUsuario) {
+    if ($esAdmin) return true;
+    if (in_array('todos', $permisosUsuario) || in_array('todo', $permisosUsuario)) return true;
+    return in_array($nombreModulo, $permisosUsuario);
 }
 ?>
 <!DOCTYPE html>
@@ -19,8 +28,7 @@ if (!isset($_SESSION['usuario_actual'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema - Ministerio Internacional Movimiento de Gloria</title>
-    <link rel="icon" type="image/png" href="Logo.png">
-
+<link rel="icon" type="image/png" href="Logo.png">
 <!-- ==========================================================
      ESTILOS (CSS)
      A diferencia de los módulos internos (Casas de Paz, Equipo
@@ -131,8 +139,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     display:block;
   }
   .nav-btn:hover{border-color:var(--wine); color:var(--wine); background:#fff;}
-  /* Clase "active" disponible para resaltar el módulo actual, aunque en este archivo
-     no se le asigna a ningún botón (no hay lógica JS que la use) */
+  /* Clase "active" disponible para resaltar el módulo actual */
   .nav-btn.active{background:var(--wine); color:#fff; border-color:var(--wine);}
 
   /* --- Fila inferior con accesos secundarios: Reportes, Usuarios y Cerrar Sesión --- */
@@ -142,6 +149,7 @@ if (!isset($_SESSION['usuario_actual'])) {
     gap:15px;
     border-top:1px solid var(--rule);
     padding-top:20px;
+    flex-wrap: wrap;
   }
   .btn{
     font-family:'Karla', sans-serif;
@@ -175,25 +183,49 @@ if (!isset($_SESSION['usuario_actual'])) {
   <div class="subtitle">Seleccione una sección para administrar los registros</div>
 
   <!-- ==========================================================
-       MENÚ DE NAVEGACIÓN PRINCIPAL
-       Un botón por cada módulo del sistema. Son simples enlaces
-       <a> (no hay JS aquí): al hacer click, el navegador va
-       directo a esa página PHP.
-       ========================================================== -->
+        MENÚ DE NAVEGACIÓN PRINCIPAL
+        Se valida el permiso correspondiente para cada módulo.
+        ========================================================== -->
   <div class="nav-grid">
-    <a href="miembros.php" class="nav-btn">Miembros</a>
-    <a href="jovenes_contra_cultura.php" class="nav-btn">Jóvenes Contra Cultura</a>
-    <a href="jovenes_invitados.php" class="nav-btn">Jóvenes Invitados</a>
-    <a href="equipo_ministerial.php" class="nav-btn">Equipo Ministerial</a>
-    <a href="escuela_ministerial.php" class="nav-btn">Escuela Ministerial</a>
-    <a href="visitantes.php" class="nav-btn">Visitantes</a>
-    <a href="casas_de_paz.php" class="nav-btn">Casas de Paz</a>
+    <?php if (tieneAccesoModulo('miembros', $esAdmin, $permisosUsuario)): ?>
+      <a href="miembros.php" class="nav-btn">Miembros</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('jovenes_cc', $esAdmin, $permisosUsuario)): ?>
+      <a href="jovenes_contra_cultura.php" class="nav-btn">Jóvenes Contra Cultura</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('jovenes_invitados', $esAdmin, $permisosUsuario)): ?>
+      <a href="jovenes_invitados.php" class="nav-btn">Jóvenes Invitados</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('equipo_ministerial', $esAdmin, $permisosUsuario)): ?>
+      <a href="equipo_ministerial.php" class="nav-btn">Equipo Ministerial</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('escuela_ministerial', $esAdmin, $permisosUsuario)): ?>
+      <a href="escuela_ministerial.php" class="nav-btn">Escuela Ministerial</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('visitantes', $esAdmin, $permisosUsuario)): ?>
+      <a href="visitantes.php" class="nav-btn">Visitantes</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('casas_de_paz', $esAdmin, $permisosUsuario)): ?>
+      <a href="casas_de_paz.php" class="nav-btn">Casas de Paz</a>
+    <?php endif; ?>
   </div>
 
-  <!-- Accesos secundarios: reportes, gestión de usuarios del sistema, y cierre de sesión -->
+  <!-- Accesos secundarios condicionados -->
   <div class="top-actions">
-    <a href="reportes.php" class="btn">Reportes</a>
-    <a href="usuarios.php" class="btn">Usuarios</a>
+    <?php if (tieneAccesoModulo('reportes', $esAdmin, $permisosUsuario)): ?>
+      <a href="reportes.php" class="btn">Reportes</a>
+    <?php endif; ?>
+
+    <?php if (tieneAccesoModulo('usuarios', $esAdmin, $permisosUsuario)): ?>
+      <a href="usuarios.php" class="btn">Usuarios</a>
+    <?php endif; ?>
+
     <a href="logout.php" class="btn btn-danger">Cerrar Sesión</a>
   </div>
 </div>
